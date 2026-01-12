@@ -1,186 +1,110 @@
-# IDT modules 9-12: quadrotor build and autonomous GNSS waypoint flight (Team 2)
+# Module 9-12: quadrotor build and GNSS waypoint autonomy
 
-![Completed quadrotor on the bench](assets/figure_04.jpg)
+![Indoor test close-up](assets/DroneIndoorTest.png)
 
-This repository documents our module 9-12 project for **Introduction to Drone Technology (IDT)** at the **University of Southern Denmark**.
+This repo-style article condenses our module 9-12 work for **Introduction to Drone Technology (IDT)** (*Drones and Autonomous Systems*, University of Southern Denmark).
 
-We built a wooden H-frame quadrotor, configured a **Pixhawk 4c** flight controller via **QGroundControl**, and validated:
-
-- Indoor assisted flight for stability and calibration sanity checks
-- Outdoor GNSS based position hold flights (manual stick input, controller holds position)
+We built a quadrotor, configured it in **QGroundControl**, and tested:
+- Manual and stabilized flight for bring-up and safety
+- Outdoor GNSS assisted flight (position hold behavior)
 - Autonomous waypoint missions using GNSS navigation
 
-## Contents
+## Goals
 
-- [Project goals](#project-goals)
-- [Hardware and build choices](#hardware-and-build-choices)
-- [System architecture](#system-architecture)
-- [QGroundControl configuration](#qgroundcontrol-configuration)
-- [Autonomy workflow](#autonomy-workflow)
-- [Flight testing](#flight-testing)
-- [Trajectory data and plots](#trajectory-data-and-plots)
-- [Lessons learned](#lessons-learned)
-- [Safety notes](#safety-notes)
-- [Repo layout suggestion](#repo-layout-suggestion)
-- [Team](#team)
+- Simple and robust airframe that is easy to iterate on
+- Balanced weight distribution for predictable control
+- Reliable GNSS assisted modes outdoors
+- Waypoint mission execution with logged trajectories for analysis
 
-## Project goals
+## Drone design and construction
 
-We aimed for a platform that is:
+We used an **H-frame** quadrotor layout for symmetry, clear motor spacing, and easier weight balancing.
 
-- Fast to assemble and easy to repair
-- Mechanically robust for iterative testing
-- Capable of stable hover and outdoor GNSS assisted flight
-- Able to execute autonomous waypoint missions with repeatable behavior
+Build highlights:
+- Four brushless motors with paired CW and CCW propellers to cancel net torque
+- Power distribution from a **4S 5000 mAh LiPo** to the ESCs and flight controller
+- Battery placed near the geometric centre of the frame and secured with Velcro straps
+- Landing legs near the motors to absorb landing impacts
 
-## Hardware and build choices
+**Build photos**
 
-### Airframe
+![Top view](assets/DroneTopView.png)
 
-We chose a **quadrotor H-frame** built from wood (planks, sticks, and plywood). The H-frame made it easy to:
-
-- Keep motor spacing clear and symmetric
-- Place electronics on a flat central plate
-- Mount landing legs near the motors
-
-We placed the **4S 5000 mAh LiPo** (the heaviest component) at the **geometric center** and secured it with Velcro straps to keep the center of mass close to the body origin.
-
-![Top view of the frame and electronics](assets/figure_05.jpeg)
-
-### Propulsion and power
-
-- 4x brushless motors
-- 4x ESCs
-- CW and CCW propellers in a diagonal pairing to cancel net torque
-- Power distribution board fed directly from the LiPo
-
-### Flight control and sensors
-
-- Pixhawk 4c flight controller
-- IMU (onboard)
-- Barometer (onboard)
-- GNSS receiver + antenna
-- Radio receiver for manual control
-- Telemetry link for ground station connection
+![Side view](assets/DroneLeftView.png)
 
 ## System architecture
 
-At a high level:
-
-1. **Battery** feeds the **power distribution board**.
-2. The distribution board powers the **ESCs** and the **flight controller**.
-3. The Pixhawk sends control signals to each ESC (one ESC per motor).
-4. The Pixhawk estimates attitude and position using onboard sensors (IMU, barometer, GNSS) and runs closed loop controllers for roll, pitch, yaw, altitude, and (when enabled) horizontal position.
-
-We relied on flight controller safety features (arming checks, RC loss handling, emergency shutdown behavior). We did not add a custom hardware kill switch, so correct configuration and pre flight checks mattered a lot.
+High-level flow:
+1. LiPo battery powers the power distribution board.
+2. The distribution board powers the ESCs and the flight controller.
+3. The flight controller commands each ESC to regulate motor thrust.
+4. Onboard sensors (IMU, GNSS, etc.) are fused for attitude and position estimation.
 
 ## QGroundControl configuration
 
-We used QGroundControl to complete the standard setup flow:
+Configuration steps we followed:
+- Select **Quadcopter (X configuration)**
+- Calibrate sensors (gyro, accelerometer, compass, level horizon)
+- Calibrate the radio controller and verify channel mapping
+- Assign flight modes to a switch
+- Configure and test a **kill switch**
 
-- Select the airframe type (quadcopter)
-- Calibrate: gyroscope, accelerometer, compass, and level horizon
-- Calibrate the radio (move each stick and switch through the full range)
-- Map flight modes to a switch (for example: Stabilized, Position, Mission)
-- Assign and verify a kill switch channel
-
-**Important:** we observed that an incorrect horizon or IMU calibration can look like unexplained drift while hovering. Recalibrating on a truly level surface improved hover stability.
-
-## Autonomy workflow
-
-We developed autonomy incrementally:
-
-1. **Manual flight** to verify motor order, prop direction, and basic stability.
-2. **Stabilized mode** testing for indoor hover and pilot assisted control.
-3. **Position hold** outdoors (GNSS enabled) to evaluate drift, wind sensitivity, and convergence.
-4. **Waypoint missions** designed in QGroundControl to test autonomous execution.
-
-Challenges we had to manage:
-
-- GNSS noise and drift
-- Parameter tuning for position control and altitude hold
-- Waypoint transitions, especially at sharp corners
+Practical note: a bad level horizon calibration can look like unexplained drift, so calibration conditions matter.
 
 ## Flight testing
 
-### Indoor testing (safety cage)
+### Indoor testing
 
-We began indoors (without GNSS) using a stabilized mode:
+First flights were conducted indoors in a drone safety cage to reduce risk. We verified motor order, prop direction, RC mapping, and basic hover stability.
 
-- The pilot controlled thrust and yaw inputs
-- The flight controller stabilized roll and pitch
+A hard landing damaged a telemetry antenna that was too close to moving parts, so it was replaced and repositioned.
 
-Issues found and fixed:
+![Indoor test setup (safety cage)](assets/DroneIndoorTest.png)
 
-- **Horizon calibration**: calibrating while the drone was not level caused consistent drift during hover. Recalibration fixed it.
-- **Telemetry antenna placement**: an antenna mounted too close to a propeller was struck during a hard landing and broke. We replaced and repositioned it away from moving parts.
+### Outdoor test site
 
-![Indoor test setup](assets/figure_01.jpeg)
+Outdoor tests were performed on an airfield landing strip.
 
-### Outdoor manual flights (Position mode)
+![Test site overview](assets/AirpoortShot.jpg)
 
-We then flew outdoors in a GNSS assisted mode where the pilot commands movement and the controller holds position:
+### Outdoor GNSS assisted manual flights
 
-- Straight line out and back along the landing strip
-- Rectangular pattern with corner holds and transitions
+We flew in a GNSS assisted mode (pilot commands movement, controller holds position) and collected tracks for analysis.
 
-The GNSS trajectory was generally close to the intended shape. Small lateral deviations were expected due to GNSS noise and wind.
+**Straight out-and-back test**
 
-### Autonomous missions (Mission mode)
+![QGroundControl track (line)](assets/FlightFirstTestLine.png)
 
-Before enabling autonomous flight, we did a short manual Position flight to confirm the system behaved as expected.
+![UTM projection (line)](assets/FlightFirstTestLine-1.png)
 
-We executed two mission types:
+**Rectangular pattern test**
 
-1. **Simple mission** covering a predefined area
-2. **More complex mission** with altitude changes, waits at waypoints, and tighter turns
+![QGroundControl track (pattern)](assets/FlightSecondTestSquare.png)
 
-Observed behavior:
+![UTM projection (pattern)](assets/FlightSecondTestSquare-1.png)
 
-- The drone followed the overall waypoint structure and completed missions.
-- Deviations were most visible at sharper turns and transitions.
-- A waypoint acceptance radius can cause the vehicle to start turning toward the next waypoint before it fully converges to the exact setpoint.
+### Autonomous waypoint missions
 
-![Autonomous trajectory overlay](assets/figure_02.png)
+Autonomous tests were run after confirming correct behavior in manual GNSS assisted mode.
 
-## Trajectory data and plots
+Typical observations:
+- The trajectory matched the waypoint structure overall
+- Deviations were most visible around turns and waypoint transitions
+- Waypoint acceptance radius and controller dynamics can trigger turns before full convergence to the waypoint
 
-We visualized GNSS tracks and converted them to UTM for plotting and comparison.
+**Example mission overlays**
 
-We also tried trajectory simplification using tolerance values around **0.4 m to 0.5 m**. The goal was to reduce point density while preserving the overall geometry for easier visualization and post processing.
+![UTM vs satellite overlay (mission)](assets/FlightSecondTestFollowPattern-1.png)
 
-![Example UTM trajectory (simplified)](assets/figure_03.png)
+![UTM track (mission)](assets/FlightSecondTestFollowPattern-2.png)
 
-For the more complex mission, we compared:
+## Trajectory data and post-processing
 
-- Commanded setpoints
-- Estimated vehicle position
-- GNSS projected position
-
-![Setpoints vs estimated vs GNSS position](assets/figure_06.png)
+We projected GNSS to **UTM** coordinates for clearer plotting and comparison. We also experimented with trajectory simplification using tolerance values around **0.4 m to 0.5 m** to reduce point density while preserving overall path geometry.
 
 ## Lessons learned
 
-What worked well:
-
-- The H-frame layout and central battery placement made the platform predictable and easier to tune.
-- Once calibrated properly, the Pixhawk 4c provided reliable stabilization and sensor fusion for both manual and autonomous modes.
-
-What bit us:
-
-- Calibration errors can masquerade as controller problems.
-- GNSS noise and wind can dominate small scale position errors.
-- Mechanical placement matters, especially antennas and anything near propellers.
-
-## Safety notes
-
-- Always remove propellers for bench testing and calibration.
-- Double check motor order and prop direction before the first flight.
-- Keep antennas and wires clear of propellers, even during hard landings.
-- Use a safety cage for early indoor tests.
-- Do not skip arming checks, sensor calibration, and failsafe verification.
-
-## Repo layout suggestion
-
-If you want to turn this into a fully reproducible repo, a practical structure is:
-
+- Symmetric frame layout and central battery placement helped stability and repeatability.
+- Calibration quality (especially level horizon) had a big impact on hover and position behavior.
+- Hardware placement matters. Keep antennas and wiring away from propellers and likely impact paths.
+- GNSS noise and wind are usually the dominant sources of small position errors.
